@@ -8,6 +8,9 @@ uptime_interval=86400  # 24 hours in seconds
 storage_threshold=80  # percentage
 recipient="your_email@example.com"  # Change this to the recipient email address
 
+# Set your preferred network interface name here
+network_interface="eth0"  # Change "eth0" to your preferred network interface name
+
 # Function to get network traffic in TiB
 get_network_traffic() {
     local interface="$1"
@@ -43,20 +46,20 @@ send_report_email() {
 
     uptime_downtime=$(get_uptime_downtime)
     speedtest_results=$(run_speedtest)
-    network_traffic_results=$(get_network_traffic "eth0")
+    network_traffic_results=$(get_network_traffic "$network_interface")
     disk_usage=$(check_disk_usage)
 
     {
-        echo "<h2>System Report</h2>"
-        echo "<h3>Uptime and Downtime</h3>"
-        echo "<p>$uptime_downtime</p>"
-        echo "<h3>Speedtest Results</h3>"
-        echo "<pre>$speedtest_results</pre>"
-        echo "<h3>Network Traffic Results (eth0)</h3>"
-        echo "<pre>$network_traffic_results</pre>"
-        echo "<h3>Disk Usage</h3>"
-        echo "<p>$disk_usage%</p>"
-    } | mail -s "System Report" -a "Content-Type: text/html" "$recipient"
+        echo "Uptime and Downtime: $uptime_downtime"
+        echo
+        echo "Speedtest Results:"
+        echo "$speedtest_results"
+        echo
+        echo "Network Traffic Results ($network_interface):"
+        echo "$network_traffic_results"
+        echo
+        echo "Disk Usage: $disk_usage%"
+    } | mail -s "System Report" "$recipient"
 
     # Check if disk usage exceeds threshold and send warning email
     if (( disk_usage >= storage_threshold )); then
