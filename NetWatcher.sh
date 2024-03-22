@@ -68,8 +68,14 @@ send_report_email() {
     fi
 }
 
+# Check if on-demand report requested
+if [[ "$1" == "--report" ]]; then
+    send_report_email
+    exit 0
+fi
+
 # Main loop to send report email every 24 hours
 while true; do
-    send_report_email
+    send_report_email &
     sleep "$uptime_interval"
 done
