@@ -4,7 +4,7 @@
   <a href='https://postimages.org/' target='_blank'><img src='https://i.postimg.cc/SNrWQfs7/root.png' width="500" border='0' alt='root'/></a>
 </p>
 
-This script is designed for Ubuntu servers to compile a comprehensive system report covering aspects like network traffic, disk usage, service status, and more. It then sends this report via email, including a personal message encouraging donations in EVRs (a hypothetical cryptocurrency). This script is particularly useful for system administrators or users who need regular insights into their system's health and performance without manually checking each metric.
+This script is designed for Ubuntu servers to compile a comprehensive system report covering aspects like network traffic, disk usage, service status, and more. It then sends this report via email. This script is particularly useful for system administrators or users who need regular insights into their system's health and performance without manually checking each metric.
 Features:
 
     Public IP and Country Code: Fetches the system's public IP address and determines the country code.
