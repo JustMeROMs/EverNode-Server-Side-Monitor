@@ -68,5 +68,7 @@ Execute the script manually by running:
 
 sudo ./system_report.sh --report
 
+CTRL + C = Terminate the Script
+
 
 donations in EVRs, support project funding by shouting me coffee!. rEYDaCM5wdr1oGcgYxXPxBJB3mTj817yee
