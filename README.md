@@ -1,34 +1,68 @@
-# Ubuntu NetWatcher
- System Metrics Reporter: A script that monitors network traffic, performs periodic speed tests, tracks system uptime, checks disk usage, and sends human-readable email reports, ensuring efficient system management and timely awareness of critical system metrics.
-This script is designed to monitor and report various system metrics via email in a human-readable format. It performs the following tasks:
+# EverNode Server Side Monitor for Ubuntu
 
-Monitoring Network Traffic: It gathers data about the network traffic, including received (RX) and transmitted (TX) data, using the vnstat command-line tool.
+This script is designed for Ubuntu servers to compile a comprehensive system report covering aspects like network traffic, disk usage, service status, and more. It then sends this report via email, including a personal message encouraging donations in EVRs (a hypothetical cryptocurrency). This script is particularly useful for system administrators or users who need regular insights into their system's health and performance without manually checking each metric.
+Features:
 
-Performing Speed Test: It conducts periodic speed tests using the speedtest-cli utility, which measures the download and upload speeds of the network connection.
+    Public IP and Country Code: Fetches the system's public IP address and determines the country code.
+    Service Status Check: Verifies if the xahaud service is active.
+    Network Traffic: Reports the total upload and download traffic through the specified network interface.
+    Disk Usage: Checks the disk usage of the root filesystem.
+    Ubuntu Version: Retrieves the running Ubuntu version.
+    Nginx Allowed IPs: Lists allowed IP addresses from the Nginx configuration for a specific site.
+    Speed Test: Performs a simple speed test to measure internet bandwidth.
+    Email Reporting: Compiles the gathered information into a report and sends it via email.
+    
 
-Checking System Uptime: It retrieves information about the system's uptime and downtime using the uptime command.
+Prerequisites:
 
-Monitoring Disk Usage: It checks the disk usage percentage using the df command to ensure that it doesn't exceed a predefined threshold (80% by default).
+The script requires the following utilities to be installed on your Ubuntu server:
 
-Sending Email Reports: The script compiles all the collected data into a comprehensive report and sends it via email to a specified recipient address.
+    curl: For fetching the public IP address and country code.
+    vnstat: For network traffic monitoring.
+    speedtest-cli: For performing speed tests.
+    mailx: For sending the report via email.
+    jq: For processing JSON data, particularly from vnstat.
+    systemctl: For checking the status of services.
+    lsb_release: For retrieving the Ubuntu version.
 
-Human-Readable Format: To ensure readability, the email report is structured with headings for each metric, including uptime and downtime, speed test results, network traffic data, and disk usage.
+Additional commands used include df, uptime, grep, awk, and sed, which are typically pre-installed in Ubuntu.
+Installation:
 
-Overall, the script provides administrators or users with regular updates on important system metrics, helping them to monitor system performance and address any potential issues promptly.
+Install Required Utilities:
 
-Here's how to install these packages on Ubuntu:
+sudo apt update
+sudo apt install curl vnstat speedtest-cli mailutils jq -y
 
-vnStat: You can install vnStat using the following command:
-sudo apt-get install vnstat
+Setup vnstat (if using network traffic monitoring):
 
-speedtest-cli: You can install speedtest-cli using pip (Python package manager). First, install pip if you haven't already:
-sudo apt-get install python3-pip
+    Initialize vnstat database for your network interface:
 
-Then, install speedtest-cli:
-sudo pip3 install speedtest-cli
+sudo vnstat -u -i enp1s0
 
-mailutils: This package provides the mail command used for sending emails. Install it using:
-sudo apt-get install mailutils
+Replace enp1s0 with your actual network interface name.
+Start and enable vnstat service:
+
+sudo systemctl start vnstat
+sudo systemctl enable vnstat
+
+Configure mailx:
+
+    Edit or create the ~/.mailrc file to configure mailx with your SMTP settings. The configuration will vary based on your email provider.
+
+Script Setup:
+
+    Copy the script into a file, e.g., system_report.sh.
+    Make the script executable:
+
+    chmod +x system_report.sh
+
+        Run the script with ./system_report.sh --report.
+
+Usage:
+
+Execute the script manually by running:
+
+./system_report.sh --report
 
 
-After installing these packages, you can run the script on your Ubuntu system. Make sure to adjust any configurations or variables (like the email recipient address) as needed for your setup.
+donations in EVRs, support project funding by shouting me coffee!. rEYDaCM5wdr1oGcgYxXPxBJB3mTj817yee
