@@ -1,75 +1,110 @@
 #!/bin/bash
 
-# Set your threshold values
-rx_limit="30" # in TiB
-tx_limit="30" # in TiB
-speedtest_interval=28800  # 8 hours in seconds
-uptime_interval=86400  # 24 hours in seconds
-storage_threshold=80  # percentage
-recipient="your_email@example.com"  # Change this to the recipient email address
+# Clear the terminal and announce the start of the test
+clear
+echo "Sit back while we run a test on your node!"
 
-# Set your preferred network interface name here
-network_interface="eth0"  # Change "eth0" to your preferred network interface name
+# Configuration variables
+network_interface="eth0" replace with your own network adapter here
+recipient="put_your_own@email_adress_here.com" replace with your own email address here
+donation_message="Please shout me a coffee by donating some EVRs. My Address is: rEYDaCM5wdr1oGcgYxXPxBJB3mTj817yee"
 
-# Function to get network traffic in TiB
-get_network_traffic() {
-    local interface="$1"
-    local result=$(vnstat -i "$interface" --oneline | awk '{print $10, $11}')
-    echo "$result"
+# Check for the availability of required commands
+required_cmds="curl vnstat speedtest-cli mailx df uptime jq bc systemctl lsb_release mpstat grep awk sed"
+for cmd in $required_cmds; do
+    if ! command -v $cmd &> /dev/null; then
+        echo >&2 "Error: Required command '$cmd' is not installed."
+    fi
+done
+
+# Fetch the public IP address of the system
+get_ipv4_address() {
+    curl -s ifconfig.me
 }
 
-# Function to run speedtest and get results
-run_speedtest() {
-    local result=$(speedtest-cli --simple)
-    echo "$result"
+# Determine the country code based on the public IP address
+get_country_code() {
+    local ip=$(get_ipv4_address)
+    curl -s "https://ipinfo.io/${ip}/country"
 }
 
-# Function to get uptime and downtime
-get_uptime_downtime() {
-    local uptime=$(uptime | awk '{print $3 " " $4}' | sed 's/,//')
-    local downtime=$(awk '{print $1}' /proc/uptime)
-    echo "$uptime $downtime"
-}
-
-# Function to check disk usage
-check_disk_usage() {
-    local usage=$(df -h / | awk 'NR==2 {print $5}' | sed 's/%//')
-    echo "$usage"
-}
-
-# Function to send email with report
-send_report_email() {
-    local uptime_downtime
-    local speedtest_results
-    local network_traffic_results
-    local disk_usage
-
-    uptime_downtime=$(get_uptime_downtime)
-    speedtest_results=$(run_speedtest)
-    network_traffic_results=$(get_network_traffic "$network_interface")
-    disk_usage=$(check_disk_usage)
-
-    {
-        echo "Uptime and Downtime: $uptime_downtime"
-        echo
-        echo "Speedtest Results:"
-        echo "$speedtest_results"
-        echo
-        echo "Network Traffic Results ($network_interface):"
-        echo "$network_traffic_results"
-        echo
-        echo "Disk Usage: $disk_usage%"
-    } | mail -s "System Report" "$recipient"
-
-    # Check if disk usage exceeds threshold and send warning email
-    if (( disk_usage >= storage_threshold )); then
-        echo "Warning: Disk usage exceeded $storage_threshold%." \
-            | mail -s "Disk Usage Warning" "$recipient"
+# Check the status of the xahaud service
+check_xahaud() {
+    if systemctl is-active --quiet xahaud; then
+        echo "xahaud service is **ACTIVE**."
+    else
+        echo "xahaud service is **NOT ACTIVE**."
     fi
 }
 
-# Main loop to send report email every 24 hours
-while true; do
-    send_report_email
-    sleep "$uptime_interval"
-done
+# Perform a simple speed test
+run_speedtest() {
+    speedtest-cli --simple
+}
+
+# Get network traffic statistics for the specified interface
+get_network_traffic() {
+    local interface="$1"
+    local traffic=$(vnstat -i "$interface" --json)
+    local rx_gb=$(echo "$traffic" | jq ".interfaces[0].traffic.total.rx" | awk '{printf "%.0f G", $1/1024/1024}')
+    local tx_gb=$(echo "$traffic" | jq ".interfaces[0].traffic.total.tx" | awk '{printf "%.0f G", $1/1024/1024}')
+    echo "Upload: ${tx_gb}, Download: ${rx_gb}"
+}
+
+# Check disk usage for the root filesystem
+check_disk_usage() {
+    df -h / | awk 'NR==2 {print "Disk Usage - Used: " $3 " / Free: " $4 " (" $5 " used)"}'
+}
+
+# Fetch the Ubuntu version of the system
+get_ubuntu_version() {
+    lsb_release -d | cut -f2
+}
+
+# Fetch allowed IP addresses from the Nginx configuration
+get_allowed_ips() {
+    echo "Fetching allowed IP list from Nginx configuration..."
+    grep 'allow' /etc/nginx/sites-available/xahau | awk '{print $2}' | sed 's/;//'
+}
+
+# Compile the system report
+compile_report() {
+    local ubuntu_version=$(get_ubuntu_version)
+    local uptime_info=$(uptime -p)
+    local ipv4_address=$(get_ipv4_address)
+    local country_code=$(get_country_code)
+    local xahaud_status=$(check_xahaud)
+    local allowed_ips=$(get_allowed_ips)
+    local speedtest_results=$(run_speedtest)
+    local network_traffic_results=$(get_network_traffic "$network_interface")
+    local disk_usage=$(check_disk_usage)
+    echo -e "\nSystem Report\n=============\n"
+    echo "Ubuntu Version: $ubuntu_version"
+    echo "Uptime: $uptime_info"
+    echo "IPv4 Address: $ipv4_address"
+    echo "Country Code: $country_code"
+    echo "$xahaud_status"
+    echo -e "Allowed IPs from Nginx Configuration:\n$allowed_ips"
+    echo -e "\nSpeedtest Results:\n$speedtest_results"
+    echo -e "\nNetwork Traffic:\n$network_traffic_results"
+    echo "Disk Usage:\n$disk_usage"
+    echo -e "\n$donation_message" # Add donation message to report
+}
+
+# Send the compiled report via email
+send_report_email() {
+    local report_content=$(compile_report)
+    echo "$report_content" | mailx -s "System Report for $(hostname) - $(date +'%Y-%m-%d %H:%M:%S')" "$recipient"
+    if [[ $? -eq 0 ]]; then
+        echo -e "Email sent successfully to $recipient.\n$donation_message" # Echo donation message
+    else
+        echo "Failed to send email. Check your mailx configuration."
+    fi
+}
+
+# Main execution
+if [[ "$1" == "--report" ]]; then
+send_report_email
+else
+echo "Usage: $0 --report"
+fi
