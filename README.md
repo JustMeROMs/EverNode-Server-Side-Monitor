@@ -66,7 +66,7 @@ Usage:
 
 Execute the script manually by running:
 
-./system_report.sh --report
+sudo ./system_report.sh --report
 
 
 donations in EVRs, support project funding by shouting me coffee!. rEYDaCM5wdr1oGcgYxXPxBJB3mTj817yee
