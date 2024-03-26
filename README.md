@@ -55,12 +55,12 @@ Configure mailx:
 
 Script Setup:
 
-    Copy the script into a file, e.g., system_report.sh.
+    Copy the script into a file, e.g., system_report.sh
     Make the script executable:
 
     chmod +x system_report.sh
 
-        Run the script with ./system_report.sh --report.
+        Run the script with sudo ./system_report.sh --report
 
 Usage:
 
